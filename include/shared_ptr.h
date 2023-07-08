@@ -2,7 +2,6 @@
 #define SHARED_PTR_H_SENTRY
 
 #include <cstdlib>
-#include <utility>
 
 template<class T>
 class SharedPtr;
@@ -18,9 +17,9 @@ class ControlBlock {
     ControlBlock() : ptr(0), refs_counter(0) {}
     //constructor for make_shared
     ControlBlock(T *in_ptr) : ptr(in_ptr), refs_counter(1) {}
+    //for following constructor T must have copy constructor
     ControlBlock(T &obj) : ptr(new T(obj)), refs_counter(1) {}
     ~ControlBlock() {}
-//    ControlBlock()
     size_t getRefsCount() { return refs_counter; }
     void release();
 
@@ -41,6 +40,7 @@ class SharedPtr {
 public:
     SharedPtr() : cb_ptr(0) {}
     SharedPtr(const SharedPtr<T> &other);
+    // for following constructor T must have copy constructor
     SharedPtr(T &obj) : cb_ptr(new ControlBlock<T>(obj)) {}
     ~SharedPtr() { if (cb_ptr) cb_ptr->release(); }
 
@@ -58,6 +58,7 @@ public:
     friend SharedPtr<U> make_shared(U *ptr);
 };
 
+// T must have copy constructor
 template <class T>
 SharedPtr<T> make_shared(const T& obj) {
     auto p = new ControlBlock<T>(new T(obj));
@@ -69,6 +70,8 @@ SharedPtr<T> make_shared(const SharedPtr<T>& other) {
     return SharedPtr<T>(other);
 }
 
+//following func assumes the pointer came from heap
+// if it is not, it will be sad
 template <class T>
 SharedPtr<T> make_shared(T *ptr) {
     auto p = new ControlBlock<T>(ptr);
