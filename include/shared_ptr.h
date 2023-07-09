@@ -41,6 +41,9 @@ public:
 
     SharedPtr(const SharedPtr<T> &other);
 
+    //move constructor
+    SharedPtr(SharedPtr&& other)  noexcept : cb_ptr(std::move(other.cb_ptr)) {}
+
     ~SharedPtr() { if (cb_ptr) cb_ptr->release(); }
 
     void release() { if (cb_ptr) cb_ptr->release(); cb_ptr = 0; }
@@ -49,7 +52,10 @@ public:
 
     T* get() const {return cb_ptr ? cb_ptr->ptr : 0; }
 
-    SharedPtr<T>& operator=(const SharedPtr<T> &other);
+    SharedPtr<T>& operator=(const SharedPtr<T> &right);
+
+    //move acquisition
+    SharedPtr<T>& operator=(SharedPtr<T>&& right) noexcept;
 
     T* operator->() { return cb_ptr->ptr; }
     T& operator*() { return *(cb_ptr->ptr); }

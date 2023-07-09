@@ -17,12 +17,18 @@ SharedPtr<T>::SharedPtr(const SharedPtr<T> &other) {
 }
 
 template <class T>
-SharedPtr<T>& SharedPtr<T>::operator=(const SharedPtr<T> &other) {
-    if (&other == this)
+SharedPtr<T>& SharedPtr<T>::operator=(const SharedPtr<T> &right) {
+    if (&right == this)
         return *this;
     release(); // we have to release current cb_ptr before grab new
-    cb_ptr = other.cb_ptr;
+    cb_ptr = right.cb_ptr;
     add_ref();
+    return *this;
+}
+
+template <class T>
+SharedPtr<T>& SharedPtr<T>::operator=(SharedPtr<T>&& right) noexcept {
+    cb_ptr = std::move(cb_ptr);
     return *this;
 }
 
