@@ -20,6 +20,7 @@ template <class T>
 SharedPtr<T>& SharedPtr<T>::operator=(const SharedPtr<T> &other) {
     if (&other == this)
         return *this;
+    release(); // we have to release current cb_ptr before grab new
     cb_ptr = other.cb_ptr;
     add_ref();
     return *this;
