@@ -28,7 +28,7 @@ SharedPtr<T>& SharedPtr<T>::operator=(const SharedPtr<T> &right) {
 
 template <class T>
 SharedPtr<T>& SharedPtr<T>::operator=(SharedPtr<T>&& right) noexcept {
-    cb_ptr = std::move(cb_ptr);
+    cb_ptr = std::move(right.cb_ptr);
     return *this;
 }
 
