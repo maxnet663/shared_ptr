@@ -16,6 +16,9 @@ SharedPtr<T>::SharedPtr(const SharedPtr<T> &other) {
     add_ref();
 }
 
+// todo maybe I should define the assignment operator for ControlBlock
+// to keep track of the amount of references
+// todo what if they point to the same object?
 template <class T>
 SharedPtr<T>& SharedPtr<T>::operator=(const SharedPtr<T> &right) {
     if (&right == this)
@@ -30,6 +33,7 @@ template <class T>
 SharedPtr<T>& SharedPtr<T>::operator=(SharedPtr<T>&& right) noexcept {
     cb_ptr = std::move(right.cb_ptr);
     return *this;
+
 }
 
 #endif //SHARED_PTR_DEF_H_SENTRY

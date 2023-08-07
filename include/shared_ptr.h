@@ -9,6 +9,8 @@ class SharedPtr;
 
 template<class T>
 class ControlBlock {
+
+    // open the class for SharedPtr
     friend SharedPtr<T>;
     size_t refs_counter;
     T *ptr;
@@ -54,7 +56,7 @@ public:
 
     SharedPtr<T>& operator=(const SharedPtr<T> &right);
 
-    //move acquisition
+    //move assignment operator
     SharedPtr<T>& operator=(SharedPtr<T>&& right) noexcept;
 
     T* operator->() { return cb_ptr->ptr; }
@@ -66,6 +68,7 @@ public:
     friend SharedPtr<U> make_shared(Args&&... args);
 };
 
+// todo how to avoid two new operators? Another constructor for ControlBlock?
 template <class T, class... Args>
 SharedPtr<T> make_shared(Args&&... args) {
     auto p_t = new T(std::forward<Args>(args)...);
