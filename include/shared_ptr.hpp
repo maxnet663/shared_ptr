@@ -11,8 +11,8 @@ template<class T>
 class ControlBlock {
 
     /**
-    open the class for SharedPtr
-     *friend is a dangerous keyword,
+     * open the class for SharedPtr
+     * friend is a dangerous keyword,
      * but in the context of a smart pointer
      * it would be appropriate
      */
@@ -22,70 +22,139 @@ class ControlBlock {
     T *ptr;
 
     //constructor for make_shared
-    explicit ControlBlock(T *in_ptr) : ptr(std::move(in_ptr)), refs_counter(1) {}
+    explicit ControlBlock(T *_ptr) noexcept
+    : ptr(_ptr), refs_counter(1) {}
 
     ~ControlBlock() = default;
 
     size_t getRefsCount() { return refs_counter; }
 
     void release();
+
     void add_ref() { refs_counter++; }
 
     template <class U, class... Args>
     friend SharedPtr<U> make_shared(Args&&... args);
 
 public:
-
     ControlBlock() = delete;
-
     ControlBlock(const ControlBlock &other) = delete;
+    ControlBlock<T>& operator=(const ControlBlock<T> &other) = delete;
 };
 
 template <class T>
 class SharedPtr {
-    ControlBlock<T> *cb_ptr;
+
+    ControlBlock<T> *ptr_cb;
 
     //private constructor for make_shared
-    explicit SharedPtr(ControlBlock<T> *in_cb_ptr) : cb_ptr(in_cb_ptr) {}
+    explicit SharedPtr(ControlBlock<T> *_ptr_cb)
+    : ptr_cb(std::move(_ptr_cb)) {}
 
-    void add_ref() { if( cb_ptr) cb_ptr->add_ref(); }
+    void add_ref() { if (ptr_cb) ptr_cb->add_ref(); }
 
 public:
 
-    SharedPtr() : cb_ptr(0) {}
+    SharedPtr() : ptr_cb(nullptr) {}
 
     SharedPtr(const SharedPtr<T> &other);
 
-    SharedPtr(SharedPtr&& other)  noexcept : cb_ptr(std::move(other.cb_ptr)) {}
-
-    ~SharedPtr() { if (cb_ptr) cb_ptr->release(); }
-
-    void release() { if (cb_ptr) cb_ptr->release(); cb_ptr = 0; }
-
-    size_t getRefsCount() const { return cb_ptr ? cb_ptr->getRefsCount() : 0; }
-
-    T* get() const {return cb_ptr ? cb_ptr->ptr : 0; }
+    SharedPtr(SharedPtr&& other)  noexcept
+    : ptr_cb(std::move(other.ptr_cb)) {}
 
     SharedPtr<T>& operator=(const SharedPtr<T> &right);
 
-    //move assignment operator
     SharedPtr<T>& operator=(SharedPtr<T>&& right) noexcept;
 
-    T* operator->() { return cb_ptr->ptr; }
-    T& operator*() { return *(cb_ptr->ptr); }
-    const T* operator->() const { return cb_ptr->ptr; }
-    const T& operator*() const { return *(cb_ptr->ptr); }
+    ~SharedPtr() { if (ptr_cb) ptr_cb->release(); }
+
+    void release()
+    { if (ptr_cb) { ptr_cb->release(); ptr_cb = nullptr; } }
+
+    size_t getRefsCount() const
+    { return ptr_cb ? ptr_cb->getRefsCount() : 0; }
+
+    T* get() const {return ptr_cb ? ptr_cb->ptr : nullptr; }
+
+    T* operator->();
+    T& operator*();
+    const T* operator->() const;
+    const T& operator*() const;
 
     template <class U, class... Args>
     friend SharedPtr<U> make_shared(Args&&... args);
 };
 
-// todo how to avoid two new operators? Another constructor for ControlBlock?
+template <class T>
+void ControlBlock<T>::release() {
+    if (!--refs_counter) {
+        delete ptr;
+        delete this;
+    }
+}
+
+template <class T>
+SharedPtr<T>::SharedPtr(const SharedPtr<T> &other) {
+    ptr_cb = other.ptr_cb;
+    add_ref();
+}
+
+template <class T>
+SharedPtr<T>& SharedPtr<T>::operator=(const SharedPtr<T> &right) {
+    //if this and right are the same or point to the same object
+    if (&right == this || ptr_cb == right.ptr_cb)
+        return *this;
+    release(); // we have to release current ptr_cb before grab new
+    ptr_cb = right.ptr_cb;
+    add_ref();
+    return *this;
+}
+
+template <class T>
+SharedPtr<T>& SharedPtr<T>::operator=(SharedPtr<T>&& right) noexcept {
+    std::swap(ptr_cb, right.ptr_cb);
+    return *this;
+}
+
+template <class T>
+T* SharedPtr<T>::operator->() {
+    if (ptr_cb)
+        return ptr_cb->ptr;
+    else
+        return nullptr;
+}
+
+template<class T>
+T& SharedPtr<T>::operator*() {
+    if (ptr_cb)
+        return *(ptr_cb->ptr);
+    else
+        throw std::logic_error("Dereference of nullptr");
+}
+
+template <class T>
+const T* SharedPtr<T>::operator->() const {
+    if (ptr_cb)
+        return ptr_cb->ptr;
+    else
+        return nullptr;
+}
+
+template<class T>
+const T& SharedPtr<T>::operator*() const {
+    if (ptr_cb)
+        return *(ptr_cb->ptr);
+    else
+        throw std::logic_error("Dereference of nullptr");
+}
+
+
+// todo how to avoid two new operators?
 template <class T, class... Args>
 SharedPtr<T> make_shared(Args&&... args) {
-    auto p_t = new T(std::forward<Args>(args)...);
-    auto p_cb = new ControlBlock<T>(p_t);
-    return SharedPtr<T>(p_cb);
+    auto ptr_value = new T(std::forward<Args>(args)...);
+    auto ptr_cb = new ControlBlock<T>(ptr_value);
+    return SharedPtr<T>(ptr_cb);
 }
 
 
