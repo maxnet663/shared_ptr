@@ -10,24 +10,35 @@ class SharedPtr;
 template<class T>
 class ControlBlock {
 
-    // open the class for SharedPtr
+    /**
+    open the class for SharedPtr
+     *friend is a dangerous keyword,
+     * but in the context of a smart pointer
+     * it would be appropriate
+     */
     friend SharedPtr<T>;
+
     size_t refs_counter;
     T *ptr;
 
-    ControlBlock(const ControlBlock &other); //banned
-
     //constructor for make_shared
-    ControlBlock(T *in_ptr) : ptr(std::move(in_ptr)), refs_counter(1) {}
+    explicit ControlBlock(T *in_ptr) : ptr(std::move(in_ptr)), refs_counter(1) {}
 
-    ~ControlBlock() {}
+    ~ControlBlock() = default;
 
     size_t getRefsCount() { return refs_counter; }
+
     void release();
     void add_ref() { refs_counter++; }
 
     template <class U, class... Args>
     friend SharedPtr<U> make_shared(Args&&... args);
+
+public:
+
+    ControlBlock() = delete;
+
+    ControlBlock(const ControlBlock &other) = delete;
 };
 
 template <class T>
@@ -35,15 +46,16 @@ class SharedPtr {
     ControlBlock<T> *cb_ptr;
 
     //private constructor for make_shared
-    SharedPtr(ControlBlock<T> *in_cb_ptr) : cb_ptr(in_cb_ptr) {}
+    explicit SharedPtr(ControlBlock<T> *in_cb_ptr) : cb_ptr(in_cb_ptr) {}
 
     void add_ref() { if( cb_ptr) cb_ptr->add_ref(); }
+
 public:
+
     SharedPtr() : cb_ptr(0) {}
 
     SharedPtr(const SharedPtr<T> &other);
 
-    //move constructor
     SharedPtr(SharedPtr&& other)  noexcept : cb_ptr(std::move(other.cb_ptr)) {}
 
     ~SharedPtr() { if (cb_ptr) cb_ptr->release(); }
